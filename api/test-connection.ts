@@ -1,4 +1,4 @@
-import { callLongCat, LONGCAT_MODEL, LONGCAT_API_KEY, errorToResponse } from './longcat';
+import { callLongCat, LONGCAT_MODEL, LONGCAT_API_KEY, errorToResponse } from '../lib/longcat.js';
 
 interface Req { method: string }
 interface Res { status(code: number): Res; json(data: unknown): void }

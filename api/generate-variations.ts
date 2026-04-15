@@ -1,4 +1,4 @@
-import { callLongCat, extractJSON, errorToResponse } from './longcat';
+import { callLongCat, extractJSON, errorToResponse } from '../lib/longcat.js';
 
 interface Req { method: string; body: { promptText: string; count?: number } }
 interface Res { status(code: number): Res; json(data: unknown): void }

@@ -1,4 +1,4 @@
-import { callLongCat, extractJSON, errorToResponse } from './longcat';
+import { callLongCat, extractJSON, errorToResponse } from '../lib/longcat.js';
 import { mapSentencesToExcerpt } from '../src/services/scriptParser';
 import { v4 as uuidv4 } from 'uuid';
 import type { ScriptSettings, ScriptSentence } from '../src/types';
