@@ -1,7 +1,7 @@
 import { callLongCat, extractJSON, errorToResponse } from '../lib/longcat.js';
-import { mapSentencesToExcerpt } from '../src/services/scriptParser';
+import { mapSentencesToExcerpt } from '../src/services/scriptParser.js';
 import { v4 as uuidv4 } from 'uuid';
-import type { ScriptSettings, ScriptSentence } from '../src/types';
+import type { ScriptSettings, ScriptSentence } from '../src/types.js';
 
 interface Req { method: string; body: { script: string; settings: ScriptSettings; sentences?: ScriptSentence[] } }
 interface Res { status(code: number): Res; json(data: unknown): void }
