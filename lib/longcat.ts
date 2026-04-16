@@ -75,14 +75,36 @@ export async function callLongCat(options: LongCatRequestOptions): Promise<strin
 
     const data = await response.json();
     const text: string | undefined = data?.choices?.[0]?.message?.content;
+
+    console.log('[LongCat Response] Status:', response.status);
+    console.log('[LongCat Response] Content Preview:', text?.slice(0, 150), '...');
+
     if (!text) throw new LongCatError('LongCat returned an empty response.', 502, 'EMPTY_RESPONSE');
     return text;
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 export function extractJSON(raw: string): string {
-    const m = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    return m ? m[1].trim() : raw.trim();
+    let clean = raw.trim();
+    // 1. Strip markdown fences if present
+    const m = clean.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (m) {
+        clean = m[1].trim();
+    }
+
+    // 2. Locate the first valid JSON array/object bounds to ignore conversational text
+    const startIdx = clean.search(/[{[]/);
+    if (startIdx >= 0) {
+        clean = clean.substring(startIdx);
+    }
+    // Backward search for the closing boundary
+    const endRe = /[\]}][^\]}]*$/;
+    const endMatch = clean.match(endRe);
+    if (endMatch && endMatch.index !== undefined) {
+        clean = clean.substring(0, endMatch.index + 1);
+    }
+
+    return clean.trim();
 }
 
 /** Convert any error to a { status, body } pair suitable for res.json() */
@@ -94,7 +116,7 @@ export function errorToResponse(error: unknown): { status: number; body: { error
         return { status: clientStatus, body: { error: error.message, code: error.errorCode ?? 'UNKNOWN' } };
     }
     if (error instanceof SyntaxError) {
-        return { status: 502, body: { error: 'Failed to parse LongCat response.', code: 'PARSE_ERROR' } };
+        return { status: 502, body: { error: `LongCat returned non-JSON output. Parser error: ${error.message}`, code: 'PARSE_ERROR' } };
     }
     const msg = error instanceof Error ? error.message : 'Unexpected server error.';
     return { status: 500, body: { error: msg, code: 'SERVER_ERROR' } };

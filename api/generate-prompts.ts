@@ -86,15 +86,27 @@ Respond with ONLY a JSON array with keys: title, promptText, shotType, purposeIn
     try {
         const raw = await callLongCat({
             messages: [
-                { role: 'system', content: 'You are an expert AI image prompt engineer for cinematic automotive photography. Reply with ONLY a JSON array, no markdown, no explanation.' },
+                { role: 'system', content: 'You are an expert AI image prompt engineer for cinematic automotive photography. Output strictly valid JSON arrays only. Do not wrap it in markdown. Do not include introductory text.' },
                 { role: 'user', content: userPrompt },
             ],
             temperature: 0.8,
             max_tokens: 2500,
         });
 
-        const parsed = JSON.parse(extractJSON(raw));
-        if (!Array.isArray(parsed)) throw new SyntaxError('Expected a JSON array');
+        const cleaned = extractJSON(raw);
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch (e) {
+            try {
+                const repaired = cleaned.replace(/,\s*([\]}])/g, '$1');
+                parsed = JSON.parse(repaired);
+            } catch {
+                throw new SyntaxError(`${e instanceof Error ? e.message : 'Unknown JSON error'} | Raw Snippet: ${cleaned.slice(0, 100)}...`);
+            }
+        }
+
+        if (!Array.isArray(parsed)) throw new SyntaxError('Response parsed successfully but is not a JSON array.');
 
         const prompts = parsed.map((item: Record<string, unknown>) => ({
             id: uuidv4(),

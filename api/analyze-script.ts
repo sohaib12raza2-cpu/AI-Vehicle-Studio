@@ -52,15 +52,28 @@ Respond with ONLY a JSON array with exactly these keys: excerpt, visualIntent, r
     try {
         const raw = await callLongCat({
             messages: [
-                { role: 'system', content: 'You are an expert automotive YouTube video director and visual planner. Reply with ONLY a JSON array, no markdown, no explanation.' },
+                { role: 'system', content: 'You are an expert automotive YouTube video director and visual planner. Output strictly valid JSON arrays only. Do not wrap it in markdown block quotes. Do not include introductory text.' },
                 { role: 'user', content: userPrompt },
             ],
             temperature: 0.7,
             max_tokens: 3000,
         });
 
-        const parsed = JSON.parse(extractJSON(raw));
-        if (!Array.isArray(parsed)) throw new SyntaxError('Expected a JSON array');
+        const cleaned = extractJSON(raw);
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch (e) {
+            // Fallback repair: remove trailing commas before brackets/braces
+            try {
+                const repaired = cleaned.replace(/,\s*([\]}])/g, '$1');
+                parsed = JSON.parse(repaired);
+            } catch {
+                throw new SyntaxError(`${e instanceof Error ? e.message : 'Unknown JSON error'} | Raw Snippet: ${cleaned.slice(0, 100)}...`);
+            }
+        }
+
+        if (!Array.isArray(parsed)) throw new SyntaxError('Response parsed successfully but is not a JSON array.');
 
         const segments = parsed.map((item: Record<string, unknown>, index: number) => {
             let sentenceIds: string[] = [];

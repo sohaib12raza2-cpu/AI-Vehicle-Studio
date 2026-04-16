@@ -18,7 +18,7 @@ export default async function handler(req: Req, res: Res) {
             messages: [
                 {
                     role: 'system',
-                    content: 'You are an expert AI image prompt engineer for cinematic automotive photography. Reply with ONLY a JSON array of strings, no markdown, no explanation.',
+                    content: 'You are an expert AI image prompt engineer for cinematic automotive photography. Output strictly valid JSON arrays of strings only. Do not wrap it in markdown. Do not include introductory text.',
                 },
                 {
                     role: 'user',
@@ -29,8 +29,20 @@ export default async function handler(req: Req, res: Res) {
             max_tokens: 1200,
         });
 
-        const parsed = JSON.parse(extractJSON(raw));
-        if (!Array.isArray(parsed)) throw new SyntaxError('Expected a JSON array of strings');
+        const cleaned = extractJSON(raw);
+        let parsed;
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch (e) {
+            try {
+                const repaired = cleaned.replace(/,\s*([\]}])/g, '$1');
+                parsed = JSON.parse(repaired);
+            } catch {
+                throw new SyntaxError(`${e instanceof Error ? e.message : 'Unknown JSON error'} | Raw Snippet: ${cleaned.slice(0, 100)}...`);
+            }
+        }
+
+        if (!Array.isArray(parsed)) throw new SyntaxError('Response parsed successfully but is not a JSON array of strings.');
 
         return res.status(200).json(parsed as string[]);
     } catch (error) {
